@@ -49,6 +49,47 @@ class Pipe:
         self.function = function
         functools.update_wrapper(self, function)
 
+    def __or__(self, other):
+        """
+        Allow pre-composition of Pipe objects
+
+        Examples
+        --------
+
+        Pre-compose Pipe objects
+            >>> from pipe import Pipe
+            >>> @Pipe
+            ... def double(iterable):
+            ...     return (x * 2 for x in iterable)
+            ...
+            ... @Pipe
+            ... def triple(iterable):
+            ...     return (x * 3 for x in iterable)
+            >>> sextuple = double | triple
+            >>> result = [1, 2, 3] | sextuple
+            >>> list(result)
+            [6, 12, 18]
+
+        Also, allow using brackets within statements:
+            >>> result = [1, 2, 3] | (double | triple)
+            >>> list(result)
+            [6, 12, 18]
+
+            Otherwise, we'll have error:
+            >>> TypeError: unsupported operand type(s) for |: 'Pipe' and 'Pipe'
+        """
+
+        if isinstance(other, Pipe):
+            return Pipe(lambda iterable: other.function(self.function(iterable)))
+
+        # # Allow composition with any callable objects,
+        # # which could be confusing at times.
+        #
+        # if callable(other):
+        #     return Pipe(lambda iterable: other(self.function(iterable)))
+
+        raise TypeError('Cannot compose a Pipe with non-Pipe object.')
+
     def __ror__(self, other):
         """
         Implement the reverse pipe operator (`|`) for the object.
